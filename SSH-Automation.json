@@ -1,0 +1,31 @@
+{
+    "ConnectionFields": [
+        {
+            "IsEncrypted": false,
+            "IsOptional": false,
+            "Name": "ComputerName",
+            "TypeName": "System.String"
+        },
+        {
+            "IsEncrypted": false,
+            "IsOptional": true,
+            "Name": "Port",
+            "TypeName": "System.Int32"
+        },
+        {
+            "IsEncrypted": false,
+            "IsOptional": false,
+            "Name": "UserName",
+            "TypeName": "System.String"
+        },
+        {
+            "IsEncrypted": true,
+            "IsOptional": false,
+            "Name": "Password",
+            "TypeName": "System.String"
+        }
+
+    ],
+    "ConnectionTypeName": "SSH",
+    "IntegrationModuleName": "SSH"
+}
