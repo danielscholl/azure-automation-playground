@@ -17,7 +17,7 @@ param([string]$Prefix = $(throw "Unique Parameter required."),
 
 
 ## SET OS TYPE  LINUX/WINDOWS
-$OS = "LINUX" 
+$OS = "LINUX"
 
 If ($OS -eq "LINUX") {
   $Publisher = "Canonical"
@@ -50,7 +50,7 @@ $StorageType = "Standard_LRS"
 
 ## Compute
 $AVSetName = $CommonName + "AVset"
-$VMName = $CommonName + "-" + $_name
+$VMName = $_name
 $VMSize = "Standard_A1"
 $OSDiskName = $VMName + "-OSDisk"
 
@@ -272,16 +272,10 @@ New-AzureRmAutomationCertificate -Name AzureRunAsCertificate `
     -Exportable | write-verbose
 
 
-# Create a Automation Connection
-# Remove-AzureRmAutomationConnection -Name $AssetConnection `
-#     -ResourceGroupName $ResourceGroupName `
-#     -AutomationAccountName $AutomationName `
-#     -Force -ErrorAction SilentlyContinue
-
 $ConnectionFieldValues = @{
-    "ApplicationId" = $Application.ApplicationId; 
-    "TenantId" = $TenantID.TenantId; 
-    "CertificateThumbprint" = $Cert.Thumbprint; 
+    "ApplicationId" = $Application.ApplicationId;
+    "TenantId" = $TenantID.TenantId;
+    "CertificateThumbprint" = $Cert.Thumbprint;
     "SubscriptionId" = $SubscriptionID.SubscriptionId
    }
 
@@ -292,14 +286,30 @@ New-AzureRmAutomationConnection -Name $AssetConnection `
     -ConnectionFieldValues $ConnectionFieldValues
 
 
-# Create an Automation Runbook
-New-AzureRmAutomationRunbook -Name $RunBook `
-    -Description 'My First Runbook' `
-    -Type PowerShell `
-    -ResourceGroupName $ResourceGroupName `
-    -AutomationAccountName $AutomationName
+# Import Runbooks
+$runbooks = Get-ChildItem "$PSScriptRoot\runbooks\workflows" -Filter *.ps1
+#$runbooks = Get-ChildItem ".\runbooks\workflows" -Filter *.ps1
+foreach ($item in $runbooks) {
+  Import-AzureRmAutomationRunbook `
+  -Path $item.FullName `
+  -Type PowerShellWorkflow `
+  -ResourceGroupName $ResourceGroupName `
+  -AutomationAccountName $AutomationName `
+  -Force
+}
 
-# Import a Runbook
+$runbooks = Get-ChildItem "$PSScriptRoot\runbooks" -Filter *.ps1
+#$runbooks = Get-ChildItem ".\runbooks" -Filter *.ps1
+foreach ($item in $runbooks) {
+  Import-AzureRmAutomationRunbook `
+  -Path $item.FullName `
+  -Type PowerShell `
+  -ResourceGroupName $ResourceGroupName `
+  -AutomationAccountName $AutomationName `
+  -Force
+}
+
+
 $Script='.\runbooks\linux-command.ps1'
 Import-AzureRmAutomationRunbook -Name $RunBook `
     -Path $Script `

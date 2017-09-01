@@ -1,21 +1,19 @@
 ﻿<#
     .DESCRIPTION
-        Playing with Azure Automation Runbook using the Run As Account (Service Principal)
+        Play with executing commands over SSH.
 
     .NOTES
         AUTHOR: Daniel Scholl
-        LASTEDIT: 
 #>
-
-workflow manage-linux
+workflow linux-command
 {
-    $Computer = "vm0" 
-                 
-    $SSHCred = Get-AutomationPSCredential -Name 'LinuxCredential' 
-    $Connection = Get-AutomationConnection -Name 'LinuxConnection'                        
-    $SSHKey = Get-AutomationVariable -Name 'SSHKey' 
+    $Computer = "vm0"
 
-    
+    $SSHCred = Get-AutomationPSCredential -Name 'LinuxCredential'
+    $Connection = Get-AutomationConnection -Name 'LinuxConnection'
+    $SSHKey = Get-AutomationVariable -Name 'SSHKey'
+
+
     Invoke-SSHCommand `
 		-ComputerName $Connection `
 		-Credential $SSHCred `

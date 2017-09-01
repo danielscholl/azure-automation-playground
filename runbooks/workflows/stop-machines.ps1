@@ -1,14 +1,14 @@
 <#
     .DESCRIPTION
-        This runbook starts all of the virtual machines in the specified Azure Resource Group.
+        This runbook stops all of the virtual machines in the specified Azure Resource Group.
 
     .PARAMETER ResourceGroupName
-        Name of the Azure Resource Group containing the VMs to be started.
+        Name of the Azure Resource Group containing the VMs to be stopped.
 
     .NOTES
         AUTHOR: Daniel Scholl
 #>
-workflow start-machines {
+workflow stop-machines {
   Param(
     [string]$ResourceGroupName
   )
@@ -26,11 +26,10 @@ workflow start-machines {
   $Machines = Get-AzureRmVM -ResourceGroupName $ResourceGroupName
   if (!$Machines) {
     Write-Output "No VMs were found in the Resource Group."
-  }
-  else {
+  } else {
     foreach -parallel ($VM in $Machines) {
-      Write-Output "Starting Server $VM.Name"
-      Start-AzureRmVM -Name $VM.Name -ResourceGroupName $ResourceGroupName
+      Write-Output "Stoping Server $VM.Name"
+      Stop-AzureRmVM -Name $VM.Name -ResourceGroupName $ResourceGroupName -Force
     }
   }
 }
