@@ -5,13 +5,13 @@
    This script will install a virtual machine, Storage, Network
    into its own resource group. It will setup an Azure Automation account.
 .EXAMPLE
-   ./initialize.ps1 <your_unique_string> <your_group> <your_vmname> <your_location>
+   ./initialize.ps1 -Prefix <your_unique_string> -ResourceGroup <your_group> <your_vmname> <your_location>
 #>
 
 #Requires -RunAsAdministrator
 
 param([string]$Prefix = $(throw "Unique Parameter required."),
-  [string]$ResourceGroup = "automate-demo",
+  [string]$ResourceGroupName = "automate-demo",
   [string]$_name = "vm",
   [string]$Location = "southcentralus")
 
@@ -38,11 +38,7 @@ else {
 }
 
 ## SETUP VARIABLES
-$CommonName = $Prefix.ToLower() + $ResourceGroup.ToLower()
-$SubscriptionInfo = Get-AzureRmSubscription
-$TenantID = $SubscriptionInfo | Select TenantId -First 1
-$SubscriptionID = $SubscriptionInfo | Select SubscriptionId -First 1
-
+$CommonName = $Prefix.ToLower() + $ResourceGroupName.ToLower()
 
 ## Storage
 $StorageName = $CommonName.Replace("-","")
@@ -72,34 +68,36 @@ $VNetSubnetAddressPrefix = "10.0.0.0/24"
 ## Automation
 $AutomationName = $CommonName + "-automate"
 $RunBook = $AutomationName + "-rb"
+$PSScriptRoot
+$SSHValue = [IO.File]::ReadAllText("$PSScriptRoot\.ssh\id_rsa")
 
-$SSHValue = [IO.File]::ReadAllText(".\.ssh\id_rsa")
-
-
-# Login to Azure
+#########################
+# LOGIN TO AZURE AND START
+#########################
 Login-AzureRmAccount
 
+$SubscriptionInfo = Get-AzureRmSubscription
+$TenantID = $SubscriptionInfo | Select TenantId -First 1
+$SubscriptionID = $SubscriptionInfo | Select SubscriptionId -First 1
 
 
 # Resource Group
 #########################
-$ResourceGroup = New-AzureRmResourceGroup -Name $ResourceGroup `
+$ResourceGroup = New-AzureRmResourceGroup -Name $ResourceGroupName `
     -Location $Location
-
 
 
 # Storage
 #########################
 $StorageAccount = New-AzureRmStorageAccount -Name $StorageName `
-    -ResourceGroup $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Type $StorageType `
     -Location $Location
 
 $DiagnosticsAccount = New-AzureRmStorageAccount -Name $DiagnosticsName `
-    -ResourceGroup $ResourceGroup  `
+    -ResourceGroupName $ResourceGroupName  `
     -Type $StorageType `
     -Location $Location
-
 
 
 # Network Security Group
@@ -117,7 +115,7 @@ $Rules += New-AzureRmNetworkSecurityRuleConfig -Name $PORT_NAME `
     -DestinationPortRange $PORT
 
 $NSG = New-AzureRmNetworkSecurityGroup -Name $NetworkSecurityGroupName `
-    -ResourceGroup $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Location $Location `
     -SecurityRules $Rules
 
@@ -126,7 +124,7 @@ $NSG = New-AzureRmNetworkSecurityGroup -Name $NetworkSecurityGroupName `
 # Network
 #########################
 $Pip = New-AzureRmPublicIpAddress -Name $PublicIPName `
-    -ResourceGroup $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Location $Location `
     -AllocationMethod Dynamic
 
@@ -134,13 +132,13 @@ $SubnetConfig = New-AzureRmVirtualNetworkSubnetConfig -Name $SubnetName `
     -AddressPrefix $VNetSubnetAddressPrefix
 
 $VNet = New-AzureRmVirtualNetwork -Name $VNetName `
-    -ResourceGroup $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Location $Location `
     -AddressPrefix $VNetAddressPrefix `
     -Subnet $SubnetConfig
 
 $Interface = New-AzureRmNetworkInterface -Name $InterfaceName `
-    -ResourceGroup $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Location $Location `
     -SubnetId $VNet.Subnets[0].Id `
     -PublicIpAddressId $Pip.Id
@@ -150,7 +148,7 @@ $Interface = New-AzureRmNetworkInterface -Name $InterfaceName `
 # Compute
 #########################
 $AVSet = New-AzureRmAvailabilitySet -Name $AVSetName `
-    -ResourceGroup $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Location $Location
 
 # Credential Collection
@@ -195,9 +193,10 @@ $VirtualMachine = Set-AzureRmVMSourceImage `
 
 
 ## Create the VM
-New-AzureRmVM -ResourceGroup $ResourceGroup `
+New-AzureRmVM -ResourceGroupName $ResourceGroupName `
     -Location $Location `
     -VM $VirtualMachine
+
 
 
 # Automation
@@ -218,7 +217,7 @@ $CertPath = Join-Path $CertDir ($AutomationName + ".pfx")
 
 # Create Automation Account
 New-AzureRmAutomationAccount -Name $AutomationName `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -Location $Location `
     -Plan Free `
     -Verbose
@@ -266,7 +265,7 @@ While ($NewRole -eq $null -and $Retries -le 2)
 
 # Create the Automation Certificate
 New-AzureRmAutomationCertificate -Name AzureRunAsCertificate `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Path $CertPath `
     -Password $CertPassword `
@@ -275,7 +274,7 @@ New-AzureRmAutomationCertificate -Name AzureRunAsCertificate `
 
 # Create a Automation Connection
 # Remove-AzureRmAutomationConnection -Name $AssetConnection `
-#     -ResourceGroupName $ResourceGroup `
+#     -ResourceGroupName $ResourceGroupName `
 #     -AutomationAccountName $AutomationName `
 #     -Force -ErrorAction SilentlyContinue
 
@@ -287,7 +286,7 @@ $ConnectionFieldValues = @{
    }
 
 New-AzureRmAutomationConnection -Name $AssetConnection `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -ConnectionTypeName AzureServicePrincipal `
     -ConnectionFieldValues $ConnectionFieldValues
@@ -297,7 +296,7 @@ New-AzureRmAutomationConnection -Name $AssetConnection `
 New-AzureRmAutomationRunbook -Name $RunBook `
     -Description 'My First Runbook' `
     -Type PowerShell `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName
 
 # Import a Runbook
@@ -305,7 +304,7 @@ $Script='.\runbooks\linux-command.ps1'
 Import-AzureRmAutomationRunbook -Name $RunBook `
     -Path $Script `
     -Type PowerShell `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Force
 
@@ -313,7 +312,7 @@ Import-AzureRmAutomationRunbook -Name $RunBook `
 # Create a new Variable
 $VariableName='SSHKey'
 New-AzureRmAutomationVariable -Name $VariableName `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Encrypted $true `
     -Description 'SSH Key' `
@@ -322,7 +321,7 @@ New-AzureRmAutomationVariable -Name $VariableName `
 # Create a new Variable
 $VariableName='SubScriptionId'
 New-AzureRmAutomationVariable -Name $VariableName `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Encrypted $true `
     -Description 'SubScriptionId' `
@@ -331,7 +330,7 @@ New-AzureRmAutomationVariable -Name $VariableName `
 # Create a new Variable
 $VariableName='TenantId'
 New-AzureRmAutomationVariable -Name $VariableName `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Encrypted $true `
     -Description 'SubScriptionId' `
@@ -341,7 +340,7 @@ New-AzureRmAutomationVariable -Name $VariableName `
 # Create a new Credential
 $credentialName='SSHCred'
 New-AzureRmAutomationCredential -Name $CredentialName `
-    -ResourceGroupName $ResourceGroup `
+    -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Description 'Credentials for logging into vm' `
     -Value $Credential
