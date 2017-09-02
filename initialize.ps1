@@ -285,6 +285,14 @@ New-AzureRmAutomationConnection -Name $AssetConnection `
     -ConnectionTypeName AzureServicePrincipal `
     -ConnectionFieldValues $ConnectionFieldValues
 
+#Import Modules
+$ModuleName="Posh-SSH"
+$ModuleUrl="https://devopsgallerystorage.blob.core.windows.net/packages/posh-ssh.2.0.1.nupkg"
+New-AzureRmAutomationModule -Name $ModuleName `
+    -ResourceGroupName $ResourceGroup `
+    -AutomationAccountName $AutomationAccount `
+    -ContentLink $ModuleUrl
+
 
 # Import Runbooks
 $runbooks = Get-ChildItem "$PSScriptRoot\runbooks\workflows" -Filter *.ps1
