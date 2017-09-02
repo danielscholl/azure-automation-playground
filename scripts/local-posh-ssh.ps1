@@ -85,51 +85,42 @@ Function Create-Vm
 
 Function Invoke-VirtualMachineSSH
 {
-    Param(
-        [Parameter(Mandatory = $true)]
-        [String] $user,
-        [Parameter(Mandatory = $true)]
-        [String] $password,
-        [Parameter(Mandatory = $true)]
-        [String] $serviceName,
-        [Parameter(Mandatory = $true)]
-        [String] $machineName,
-        [Parameter(Mandatory = $true)]
-        [String[]] $commands
-    )
+  Param(
+    [Parameter(Mandatory = $true)]
+    [String] $user,
+    [Parameter(Mandatory = $true)]
+    [securestring] $secpasswd,
+    [Parameter(Mandatory = $true)]
+    [String] $ResourceGroup,
+    [Parameter(Mandatory = $true)]
+    [String] $MachineName,
+    [Parameter(Mandatory = $true)]
+    [String[]] $commands
+  )
 
-    <#
-        $user = "webplu"
-        $password = "Passw0rd!"
-        $serviceName = "test-rabbitmq"
-        $machineName = "test-rabbitmq-2"
-        $commands = @("pwd")
-    #>
 
-    $vm = Get-AzureVM -Name $machineName -ServiceName $serviceName
-    $endpoint = Get-AzureEndpoint -Name "ssh" -VM $vm
+  $vm = Get-AzureRMVM -Name $MachineName -ResourceGroup $ResourceGroup
+  $ipconfig = Get-AzureRmNetworkInterface | Where-Object { $_.Id -eq $vm.NetworkInterfaceIDs[0]} | Get-AzureRmNetworkInterfaceIpConfig
+  $publicIp = Get-AzureRmPublicIpAddress | Where-Object { $_.Id -eq $ipconfig.PublicIpAddress.Id } |Select-Object IpAddress
 
-    $sshHost = $serviceName + ".cloudapp.net"
+  # remove ssh trusted hosts
+  Get-SSHTrustedHost | Remove-SSHTrustedHost
 
-    # remove ssh trusted hosts
-    Get-SSHTrustedHost | Remove-SSHTrustedHost
+  $sshCredentials = New-Object System.Management.Automation.PSCredential ($User, $secpasswd)
+  $sshSession = New-SSHSession -ComputerName $publicIp.IpAddress -Port 22 -Credential $sshCredentials -AcceptKey
 
-    $secpasswd = ConvertTo-SecureString $password -AsPlainText -Force
-    $sshCredentials = New-Object System.Management.Automation.PSCredential ($user, $secpasswd)
-    $sshSession = New-SSHSession -ComputerName $sshHost -Port $endpoint.Port -Credential $sshCredentials -AcceptKey $TRUE
-
-    foreach ($command in $commands) {
-        $status = Invoke-SSHCommand -SSHSession $sshSession -Command $command
-        if ($status.ExitStatus -ne 0) {
-            break
-        } else {
-            Write-Host $status.Output
-        }
-    }
-
-    $null = Remove-SSHSession -SSHSession $sshSession
-
+  foreach ($command in $commands) {
+    $status = Invoke-SSHCommand -SSHSession $sshSession -Command $command
     if ($status.ExitStatus -ne 0) {
-        throw $status.Output
+        break
+    } else {
+        Write-Host $status.Output
     }
+  }
+
+  $null = Remove-SSHSession -SSHSession $sshSession
+
+  if ($status.ExitStatus -ne 0) {
+    throw $status.Output
+  }
 }
