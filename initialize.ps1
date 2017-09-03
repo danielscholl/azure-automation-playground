@@ -295,17 +295,6 @@ New-AzureRmAutomationModule -Name $ModuleName `
 
 
 # Import Runbooks
-$runbooks = Get-ChildItem "$PSScriptRoot\runbooks\workflows" -Filter *.ps1
-#$runbooks = Get-ChildItem ".\runbooks\workflows" -Filter *.ps1
-foreach ($item in $runbooks) {
-  Import-AzureRmAutomationRunbook `
-  -Path $item.FullName `
-  -Type PowerShellWorkflow `
-  -ResourceGroupName $ResourceGroupName `
-  -AutomationAccountName $AutomationName `
-  -Force
-}
-
 $runbooks = Get-ChildItem "$PSScriptRoot\runbooks" -Filter *.ps1
 #$runbooks = Get-ChildItem ".\runbooks" -Filter *.ps1
 foreach ($item in $runbooks) {
