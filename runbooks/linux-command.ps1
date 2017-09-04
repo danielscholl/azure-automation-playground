@@ -37,16 +37,50 @@ Catch {
         -ErrorAction Stop
 }
 
-# Get Machine Credential
+Get Virtual Machine
+$vm = Get-AzureRmVm -Name $MachineName -ResourceGroup $ResourceGroup
+if (!$vm) {
+    throw "Could not find a Machine named '${vm}'."
+}
+
+# Get Network Interface
+$nic = Get-AzureRmNetworkInterface | where { $_.Id -eq $vm.NetworkProfile.NetworkInterfaces[0].Id }
+if (!$nic) {
+    throw "Could not find a Network Interface."
+}
+
+# Get Public IP Address
+$publicIp = Get-AzureRmPublicIpAddress | where { $_.Id -eq $nic.IpConfigurations.PublicIpAddress.Id }
+if (!$publicIp) {
+    throw "Could not find a Public IP for '${nic}.Name'."
+}
+
+
+
+# Get Automation Account Name
 $automation = Get-AzureRmAutomationAccount -ResourceGroupName $ResourceGroup
-$credential = Get-AzureRmAutomationCredential -Name SSHCred `
+if (!$automation) {
+    throw "Could not find an Automation Account named '${automation}'."
+}
+
+# Get Machine Credentials
+$credentialName = 'SSHCred'
+$sshCredentials = Get-AzureRmAutomationCredential -Name $credentialName `
     -ResourceGroup $ResourceGroup `
-    -AutomationAccountName $automation.AutomationAccountName `
+    -AutomationAccountName $automation.AutomationAccountName
+if (!$sshCredentials) {
+    throw "Could not find an Credential Asset named '${credentialName}'."
+}
 
-# Get IP address of Machine    
-$vm = Get-AzureRMVM -Name $MachineName -ResourceGroup $ResourceGroup
-$ipconfig = Get-AzureRmNetworkInterface | Where-Object { $_.Id -eq $vm.NetworkInterfaceIDs[0]} | Get-AzureRmNetworkInterfaceIpConfig
-$publicIp = Get-AzureRmPublicIpAddress | Where-Object { $_.Id -eq $ipconfig.PublicIpAddress.Id } |Select-Object IpAddress
+# $user = 'myUser'
+# $password = 'myPassword'
+# $secpasswd = ConvertTo-SecureString $password -AsPlainText -Force
 
 
-# Write-Host $vm
+# $sshCredentials = New-Object System.Management.Automation.PSCredential ($user, $secpasswd)
+$sshSession = New-SSHSession -ComputerName $publicIp.IpAddress -Port 22 -ConnectionTimeout 30 -Credential $sshCredentials -AcceptKey -Force
+
+$status = Invoke-SSHCommand -SSHSession $sshSession -Command 'pwd'
+Write-Output $status.Output
+
+

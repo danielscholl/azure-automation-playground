@@ -11,7 +11,7 @@
 #Requires -RunAsAdministrator
 
 param([string]$Prefix = $(throw "Unique Parameter required."),
-  [string]$ResourceGroupName = "automate-demo",
+  [string]$ResourceGroupName = "automate-demo2",
   [string]$_name = "vm",
   [string]$Location = "southcentralus")
 
@@ -49,7 +49,7 @@ $DiagnosticsName = $DiagnosticsName + "diag"
 $StorageType = "Standard_LRS"
 
 ## Compute
-$AVSetName = $CommonName + "AVset"
+$AVSetName = $ResourceGroupName.ToLower() + "-AVset"
 $VMName = $_name
 $VMSize = "Standard_A1"
 $OSDiskName = $VMName + "-OSDisk"
@@ -61,12 +61,12 @@ $NetworkSecurityGroupName = $VMName + "-nsg"
 $InterfaceName = $VMName + "-nic"
 $PublicIPName = $VMName + "-ip"
 $SubnetName = "Subnet"
-$VNetName = $CommonName + "VNet"
+$VNetName = $ResourceGroupName.ToLower() + "-VNet"
 $VNetAddressPrefix = "10.0.0.0/16"
 $VNetSubnetAddressPrefix = "10.0.0.0/24"
 
 ## Automation
-$AutomationName = $CommonName + "-automate"
+$AutomationName = $ResourceGroupName.ToLower() + "-automate"
 $RunBook = $AutomationName + "-rb"
 $PSScriptRoot
 $SSHValue = [IO.File]::ReadAllText("$PSScriptRoot\.ssh\id_rsa")
@@ -289,10 +289,23 @@ New-AzureRmAutomationConnection -Name $AssetConnection `
 $ModuleName="Posh-SSH"
 $ModuleUrl="https://devopsgallerystorage.blob.core.windows.net/packages/posh-ssh.2.0.1.nupkg"
 New-AzureRmAutomationModule -Name $ModuleName `
-    -ResourceGroupName $ResourceGroup `
-    -AutomationAccountName $AutomationAccount `
+    -ResourceGroupName $ResourceGroupName `
+    -AutomationAccountName $AutomationName `
     -ContentLink $ModuleUrl
 
+$ModuleName="AzureRM.Profile"
+$ModuleURL="https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.profile.3.3.1.nupkg"
+New-AzureRmAutomationModule -Name $ModuleName `
+-ResourceGroupName $ResourceGroupName `
+-AutomationAccountName $AutomationName `
+-ContentLink $ModuleUrl
+
+$ModuleName="AzureRM.Network"
+$ModuleURL="https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.network.4.3.1.nupkg"
+New-AzureRmAutomationModule -Name $ModuleName `
+-ResourceGroupName $ResourceGroupName `
+-AutomationAccountName $AutomationName `
+-ContentLink $ModuleUrl
 
 # Import Runbooks
 $runbooks = Get-ChildItem "$PSScriptRoot\runbooks" -Filter *.ps1
@@ -307,13 +320,13 @@ foreach ($item in $runbooks) {
 }
 
 
-$Script='.\runbooks\linux-command.ps1'
-Import-AzureRmAutomationRunbook -Name $RunBook `
-    -Path $Script `
-    -Type PowerShell `
-    -ResourceGroupName $ResourceGroupName `
-    -AutomationAccountName $AutomationName `
-    -Force
+# $Script='.\runbooks\linux-command.ps1'
+# Import-AzureRmAutomationRunbook -Name $RunBook `
+#     -Path $Script `
+#     -Type PowerShell `
+#     -ResourceGroupName $ResourceGroupName `
+#     -AutomationAccountName $AutomationName `
+#     -Force
 
 
 # Create a new Variable
