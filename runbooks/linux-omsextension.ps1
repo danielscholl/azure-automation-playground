@@ -67,18 +67,6 @@ Catch {
 Write-Output -InputObject 'OMS Extension Installation Started.'
 
 Try {
-    # $ExtenstionStatus = Set-AzureRmVMExtension `
-    #     -ResourceGroupName $ResourceGroup `
-    #     -VMName $VMName `
-    #     -Name 'OMSExtension' `
-    #     -Publisher 'Microsoft.EnterpriseCloud.Monitoring' `
-    #     -TypeHandlerVersion '1.0' `
-    #     -ExtensionType 'MicrosoftMonitoringAgent' `
-    #     -Location $VMLocation `
-    #     -SettingString $Settings `
-    #     -ProtectedSettingString $ProtectedSettings `
-    #     -ErrorAction Stop
-
   $vm = Get-AzureRmVM -Name $VMName `
     -ResourceGroupName $ResourceGroup `
     -ErrorAction Stop

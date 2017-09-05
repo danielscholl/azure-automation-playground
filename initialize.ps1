@@ -11,13 +11,13 @@
 #Requires -RunAsAdministrator
 
 param([string]$Prefix = $(throw "Unique Parameter required."),
-  [string]$ResourceGroupName = "automate-demo2",
+  [string]$ResourceGroupName = "automate-demo",
   [string]$_name = "vm",
   [string]$Location = "southcentralus")
 
 
 ## SET OS TYPE  LINUX/WINDOWS
-$OS = "LINUX"
+$OS = "WINDOWS"
 
 If ($OS -eq "LINUX") {
   $Publisher = "Canonical"
@@ -339,12 +339,12 @@ New-AzureRmAutomationVariable -Name $VariableName `
     -Value $SSHValue
 
 # Create a new Variable
-$VariableName='SubScriptionId'
+$VariableName='AzureSubscriptionID'
 New-AzureRmAutomationVariable -Name $VariableName `
     -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Encrypted $true `
-    -Description 'SubScriptionId' `
+    -Description 'AzureSubscriptionID' `
     -Value (Get-AzureRmSubscription).SubscriptionId
 
 # Create a new Variable
@@ -353,12 +353,12 @@ New-AzureRmAutomationVariable -Name $VariableName `
     -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
     -Encrypted $true `
-    -Description 'SubScriptionId' `
+    -Description 'Tenant ID' `
     -Value (Get-AzureRmSubscription).TenantId
 
 
 # Create a new Credential
-$credentialName='SSHCred'
+$credentialName='LoginCred'
 New-AzureRmAutomationCredential -Name $CredentialName `
     -ResourceGroupName $ResourceGroupName `
     -AutomationAccountName $AutomationName `
