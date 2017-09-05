@@ -293,19 +293,19 @@ New-AzureRmAutomationModule -Name $ModuleName `
     -AutomationAccountName $AutomationName `
     -ContentLink $ModuleUrl
 
-$ModuleName="AzureRM.Profile"
-$ModuleURL="https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.profile.3.3.1.nupkg"
-New-AzureRmAutomationModule -Name $ModuleName `
--ResourceGroupName $ResourceGroupName `
--AutomationAccountName $AutomationName `
--ContentLink $ModuleUrl
+# $ModuleName="AzureRM.Profile"
+# $ModuleURL="https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.profile.3.3.1.nupkg"
+# New-AzureRmAutomationModule -Name $ModuleName `
+# -ResourceGroupName $ResourceGroupName `
+# -AutomationAccountName $AutomationName `
+# -ContentLink $ModuleUrl
 
-$ModuleName="AzureRM.Network"
-$ModuleURL="https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.network.4.3.1.nupkg"
-New-AzureRmAutomationModule -Name $ModuleName `
--ResourceGroupName $ResourceGroupName `
--AutomationAccountName $AutomationName `
--ContentLink $ModuleUrl
+# $ModuleName="AzureRM.Network"
+# $ModuleURL="https://devopsgallerystorage.blob.core.windows.net/packages/azurerm.network.4.3.1.nupkg"
+# New-AzureRmAutomationModule -Name $ModuleName `
+# -ResourceGroupName $ResourceGroupName `
+# -AutomationAccountName $AutomationName `
+# -ContentLink $ModuleUrl
 
 # Import Runbooks
 $runbooks = Get-ChildItem "$PSScriptRoot\runbooks" -Filter *.ps1
