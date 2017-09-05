@@ -11,6 +11,31 @@ param (
     [String]
     $VMLocation
   )
+
+#region Azure Authentication
+  $connectionName = "AzureRunAsConnection"
+  try {
+    # Get the connetion  "AzureRunAsConnection"
+    $servicePrincipalConnection = Get-AutomationConnection -Name $connectionName
+  
+    "Logging in to Azure..."
+    Add-AzureRmAccount `
+      -ServicePrincipal `
+      -TenantId $servicePrincipalConnection.TenantId `
+      -ApplicationId $servicePrincipalConnection.ApplicationId `
+      -CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint
+  }
+  catch {
+    if (!$servicePrincipalConnection) {
+      $ErrorMessage = "Connection $connectionName not found."
+      throw $ErrorMessage
+    } else {
+      Write-Error -Message $_.Exception
+      throw $_.Exception
+    }
+  }
+#endregion
+
   
   # Set Error Preference
   $ErrorActionPreference = "Stop"
@@ -34,29 +59,7 @@ param (
     throw "Could not find an Variable Asset named '${VariableName}'."
   }
   
-  $ConnectionName = 'AzureRunAsConnection'
-  $Conn = Get-AutomationConnection -Name $ConnectionName
-  if (!$Conn) {
-    throw "Could not find an Connection Asset named '${ConnectionName}'."
-  }
   
-  
-  Try {
-      # Authenticate
-    Add-AzureRMAccount -ServicePrincipal `
-      -Tenant $Conn.TenantID `
-      -ApplicationId $Conn.ApplicationID `
-      -CertificateThumbprint $Conn.CertificateThumbprint
-  }
-  Catch {
-    $ErrorMessage = 'Login to Azure failed.'
-    $ErrorMessage += " `n"
-    $ErrorMessage += 'Error: '
-    $ErrorMessage += $_
-    Write-Error `
-      -Message $ErrorMessage `
-      -ErrorAction Stop
-  }
   
   
   # Set Variables

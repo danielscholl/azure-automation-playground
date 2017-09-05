@@ -12,34 +12,36 @@ workflow start-machines {
 	Param(
   	    [string]$ResourceGroupName
 	)
+
 	inlineScript {
 		$ResourceGroupName = $using:ResourceGroupName
-		
-		$ConnectionName = 'AzureRunAsConnection'
-		$Conn = Get-AutomationConnection -Name $ConnectionName
-		if (!$Conn) {
-  		    throw "Could not find an Connection Asset named '${ConnectionName}'."
+
+		$connectionName = "AzureRunAsConnection"
+		try {
+			# Get the connetion  "AzureRunAsConnection"
+			$servicePrincipalConnection = Get-AutomationConnection -Name $connectionName
+
+			"Logging in to Azure..."
+			Add-AzureRmAccount `
+				-ServicePrincipal `
+				-TenantId $servicePrincipalConnection.TenantId `
+				-ApplicationId $servicePrincipalConnection.ApplicationId `
+				-CertificateThumbprint $servicePrincipalConnection.CertificateThumbprint
 		}
-		
-		Try {
-            # Authenticate
-            Add-AzureRMAccount -ServicePrincipal `
-                -Tenant $Conn.TenantID `
-                -ApplicationId $Conn.ApplicationID `
-                -CertificateThumbprint $Conn.CertificateThumbprint
+		catch {
+			if (!$servicePrincipalConnection) {
+				$ErrorMessage = "Connection $connectionName not found."
+				throw $ErrorMessage
+			} else {
+				Write-Error -Message $_.Exception
+				throw $_.Exception
+			}
 		}
-		Catch {
-            $ErrorMessage = 'Login to Azure failed.'
-            $ErrorMessage += " `n"
-            $ErrorMessage += 'Error: '
-            $ErrorMessage += $_
-            Write-Error -Message $ErrorMessage `
-                -ErrorAction Stop
-		}
-		
+
 		$Machines = Get-AzureRmVM -ResourceGroupName $ResourceGroupName
+
 		if (!$Machines) {
-  		    Write-Output "No VMs were found in the Resource Group."
+  		    Write-Output "No VMs found in the Resource Group."
 		} else {
   		$Machines | ForEach-Object {
     		Write-Output "Starting Server $_.Name"
